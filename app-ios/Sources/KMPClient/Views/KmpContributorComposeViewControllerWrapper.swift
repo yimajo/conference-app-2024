@@ -2,10 +2,14 @@ import SwiftUI
 @preconcurrency import shared
 
 public struct KmpContributorComposeViewControllerWrapper: UIViewControllerRepresentable {
-    public let repositories: any Repositories
+    public typealias URLString = String
 
-    public init() {
+    public let repositories: any Repositories
+    private let onContributorsItemClick: (URLString) -> Void
+
+    public init(onContributorsItemClick: @escaping (URLString) -> Void) {
         self.repositories = Container.shared.get(type: (any Repositories).self)
+        self.onContributorsItemClick = onContributorsItemClick
     }
 
     public func makeUIViewController(context: Context) -> UIViewController {
