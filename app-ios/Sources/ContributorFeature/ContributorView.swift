@@ -6,7 +6,7 @@ import shared
 import CommonComponents
 
 public struct ContributorView: View {
-    private enum ViewType: String, CaseIterable {
+    private enum ContributorTab: String, CaseIterable {
         case swift
         case kmpPresenter
         case fullKmp
@@ -20,13 +20,13 @@ public struct ContributorView: View {
                 "KMP Presenter"
 
             case .fullKmp:
-                "KMP Compose view"
+                "KMP Compose View"
             }
         }
     }
 
-    @State private var viewType: ViewType = .swift
-
+    @State private var selectedTab: ContributorTab? = .swift
+    @Namespace var namespace
     @Bindable var store: StoreOf<ContributorReducer>
 
     public init(store: StoreOf<ContributorReducer>) {
@@ -35,29 +35,24 @@ public struct ContributorView: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            Picker("", selection: $viewType) {
-                ForEach(ViewType.allCases, id: \.self) { segment in
-                    Text(segment.title)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(16)
+            tabBar
 
-            switch viewType {
-            case .swift:
+            TabView(selection: $selectedTab) {
                 SwiftUIContributorView(store: store)
+                    .tag(ContributorTab.swift)
 
-            case .kmpPresenter:
                 KmpPresenterContributorView()
+                    .tag(ContributorTab.kmpPresenter)
 
-            case .fullKmp:
                 KmpContributorComposeViewControllerWrapper { urlString in
                     guard let url = URL(string: urlString) else {
                         return
                     }
                     store.send(.view(.contributorButtonTapped(url)))
                 }
+                .tag(ContributorTab.fullKmp)
             }
+            .tabViewStyle(.page(indexDisplayMode: .never))
         }
         .background(AssetColors.Surface.surface.swiftUIColor)
         .navigationTitle(String(localized: "Contributor", bundle: .module))
@@ -66,6 +61,41 @@ public struct ContributorView: View {
             SafariView(url: url.id)
                 .ignoresSafeArea()
         })
+    }
+    
+    @MainActor
+    private var tabBar: some View {
+        HStack {
+            ForEach(ContributorTab.allCases, id: \.self) { tab in
+                Button {
+                    selectedTab = tab
+                } label: {
+                    ZStack {
+                        Text(tab.title)
+                            .textStyle(.titleMedium)
+                            .foregroundStyle(
+                                selectedTab == tab ? AssetColors.Primary.primaryFixed.swiftUIColor : AssetColors.Surface.onSurface.swiftUIColor
+                            )
+                        VStack {
+                            Spacer()
+                            Group {
+                                if selectedTab == tab {
+                                    AssetColors.Primary.primaryFixed.swiftUIColor
+                                        .matchedGeometryEffect(id: "underline", in: namespace, properties: .frame)
+                                } else {
+                                    Color.clear
+                                }
+                            }
+                            .frame(height: 3)
+                        }
+                    }
+                    .frame(height: 52, alignment: .center)
+                    .frame(maxWidth: .infinity)
+                    .animation(.spring(), value: selectedTab)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
     }
 }
 
